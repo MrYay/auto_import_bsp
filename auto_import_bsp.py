@@ -197,7 +197,7 @@ def main():
     # When --help or no args are given, print this help
     usage_text = (
             "Run blender with the import_bsp addon in background mode on a blend file with this script:"
-            "  blender ---background </path/to/blendfile.blend> --python " + __file__ + " -- --bsp <path/to/mapname.bsp> [options]"
+            "  blender --background </path/to/blendfile.blend> --python " + __file__ + " -- --bsp <path/to/mapname.bsp> [options]"
     )
 
     parser = argparse.ArgumentParser(description=usage_text)
