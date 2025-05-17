@@ -51,6 +51,7 @@ def cleanup_blend_file(gamepack_name=""):
 
     print('Blend file cleanup done')
 
+
 def dummy_render():
     # render 1 dummy frame
     hidden_for_render = []
@@ -298,13 +299,13 @@ def main():
     bsp_path = Path(args.bsp)
     print(f"bsp_path = {bsp_path}")
     if not bsp_path.exists():
-        print(f"Error: Path '{bsp_path}' does not exist, aborting")
+        print(f"Error: BSP Path '{bsp_path}' does not exist, aborting")
         return
 
     if args.gamepack:
         gamepack_path = Path(bpy.utils.script_paths(subdir="addons/import_bsp/gamepacks/")[0] + args.gamepack)
         if not gamepack_path.exists():
-            print(f"Error: Path '{gamepack_path}' does not exist, aborting")
+            print(f"Error: Gamepack Path '{gamepack_path}' does not exist, aborting")
             return
 
     cleanup_blend_file(args.gamepack)
