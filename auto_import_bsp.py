@@ -24,17 +24,32 @@
 # Mr.Yeah! - 5/16/2025
 
 import bpy
+import import_bsp
 from pathlib import Path
 
 
-def cleanup_blend_file():
+def cleanup_blend_file(gamepack_name=""):
+    print('Blend file cleanup...')
+
     # Clear remaining lightmap images
     [bpy.data.images.remove(im) for im in bpy.data.images if "lm_" in im.filepath]
 
-    # Clear existing sunext, worldspawn objects before reimport
+    # Clear previously imported sunext lights and game entities before reimport
     [bpy.data.objects.remove(obj) for obj in bpy.data.objects if "sunext" in obj.name]
-    [bpy.data.objects.remove(obj) for obj in bpy.data.objects if "worldspawn" in obj.name]
 
+    if gamepack_name != "":
+        gamepack_name = bpy.context.preferences.addons['import_bsp'].preferences.gamepack
+
+    gamepack_ents = import_bsp.idtech3lib.GamePacks.get_gamepack(
+        bpy.utils.script_paths(subdir="addons/import_bsp/gamepacks/")[0],
+        gamepack_name)
+
+    for ent_name in gamepack_ents:
+        for obj in bpy.data.objects:
+            if obj.name == ent_name:
+                bpy.data.objects.remove(obj)
+
+    print('Blend file cleanup done')
 
 def dummy_render():
     # render 1 dummy frame
@@ -247,6 +262,10 @@ def main():
         help="BSP Import preset to use",
     )
     parser.add_argument(
+        "--gamepack", dest="gamepack", type=str,
+        help="Gamepack to use with import_bsp (default 'Jedi Knight Jedi Academy SP.json')",
+    )
+    parser.add_argument(
         "--subdivisions", dest="subdivisions", default="2", type=int,
         help="Amount of subdivisions to apply to patch meshes",
     )
@@ -282,7 +301,13 @@ def main():
         print(f"Error: Path '{bsp_path}' does not exist, aborting")
         return
 
-    cleanup_blend_file()
+    if args.gamepack:
+        gamepack_path = Path(bpy.utils.script_paths(subdir="addons/import_bsp/gamepacks/")[0] + args.gamepack)
+        if not gamepack_path.exists():
+            print(f"Error: Path '{gamepack_path}' does not exist, aborting")
+            return
+
+    cleanup_blend_file(args.gamepack)
     bpy.ops.import_scene.id3_bsp(filepath=str(bsp_path), filter_glob="*.bsp", preset=args.preset,
                                  subdivisions=args.subdivisions, min_atlas_size=args.min_atlas_size,
                                  vert_map_packing=args.vert_map_packing)
