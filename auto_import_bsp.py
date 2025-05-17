@@ -52,10 +52,23 @@ def dummy_render():
         bpy.ops.object.camera_add()
         temp_cam = [obj for obj in bpy.data.objects if obj.type == 'CAMERA'][0]
 
+    # Scene Render settings
+    scene = bpy.data.scenes[0]
+    previous_res_x = scene.render.resolution_x
+    previous_res_y = scene.render.resolution_y
+    previous_samples = scene.cycles.samples
+    scene.render.resolution_x = 1
+    scene.render.resolution_y = 1
+    scene.cycles.samples = 1
+
     # Render 1 frame
     bpy.ops.render.render()
 
     # Scene cleanup
+    scene.render.resolution_x = previous_res_x
+    scene.render.resolution_y = previous_res_y
+    scene.cycles.samples = previous_samples
+
     for hidden_obj in hidden_for_render:
         hidden_obj.hide_render = False
 
