@@ -179,7 +179,7 @@ def bake_lightgrid(bsp_path):
     # Create Lightgrid object
     print('Creating Lightgrid Object...')
     bpy.ops.q3.create_lightgrid()
-    print('Lightgrid Object Created...')
+    print('Lightgrid Object Created')
 
     # Select Lightgrid object only
     bpy.ops.object.select_all(action='DESELECT')
@@ -195,18 +195,18 @@ def bake_lightgrid(bsp_path):
 
     print('Baking Lightgrid...')
     bpy.ops.object.bake(type='DIFFUSE')
-    print('Lightgrid baking done.')
+    print('Lightgrid baking done')
 
     # Convert baked lightgrid
     print('Converting Lightgrid...')
     bpy.ops.q3.convert_baked_lightgrid()
-    print('Lightgrid converted...')
+    print('Lightgrid converted')
 
     # Patch .bsp file, lightgrid only
     print('Patching BSP Lightgrid...')
     bpy.ops.q3.patch_bsp_data(filepath=str(bsp_path), filter_glob="*.bsp", create_backup=False, patch_lm_tcs=False,
                               patch_lightgrid=True, patch_lightmaps=False)
-    print('BSP Lightgrid patching done...')
+    print('BSP Lightgrid patching done')
 
 
 def main():
@@ -316,7 +316,7 @@ def main():
     if args.bake_lightgrid:
         bake_lightgrid(bsp_path)
 
-    print("job finished, exiting")
+    print("Job finished, exiting")
 
 
 if __name__ == "__main__":
