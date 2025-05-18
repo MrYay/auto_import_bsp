@@ -286,6 +286,10 @@ def main():
         "--lightgrid", dest="bake_lightgrid", action="store_true",
         help="Enable Lightgrid Baking",
     )
+    parser.add_argument(
+        "--extra-emission-scale", dest="extra_emission_scale", type=float,
+        help="Extra shader emission scale",
+    )
     args = parser.parse_args(argv)
 
     if not argv:
@@ -312,6 +316,13 @@ def main():
     bpy.ops.import_scene.id3_bsp(filepath=str(bsp_path), filter_glob="*.bsp", preset=args.preset,
                                  subdivisions=args.subdivisions, min_atlas_size=args.min_atlas_size,
                                  vert_map_packing=args.vert_map_packing)
+
+    if args.extra_emission_scale:
+        if "EmissionScaleNode" in [nodegroup.name for nodegroup in bpy.data.node_groups]:
+            if "Extra emission scale" in [node.name for node in bpy.data.node_groups["EmissionScaleNode"].nodes]:
+                print(f"Setting extra emission scale {args.extra_emission_scale}")
+                bpy.data.node_groups["EmissionScaleNode"].nodes['Extra emission scale'].outputs[0].default_value = args.extra_emission_scale
+
     if args.bake_lightmap:
         bake_lightmap()
     if args.bake_lightgrid:
