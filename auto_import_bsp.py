@@ -92,17 +92,13 @@ def dummy_render():
         bpy.data.objects.remove(temp_cam)
 
 
-def bake_lightmap():
-    def save_lightmap_images(format="JPEG", suffix=".jpg"):
-        lightmaps = [im for im in bpy.data.images if 'lm_' in im.filepath]
-        for lm in lightmaps:
-            lm.file_format = format
-            lm_path = Path(lm.filepath)
-            print(f"Saving lightmap image to {str(lm_path.with_suffix(suffix))} ... ")
-            lm.save(filepath=str(lm_path.with_suffix(suffix)), quality=90)
-
-    # List lightmap images
-    lightmaps = [im for im in bpy.data.images if 'lm_' in im.filepath]
+def bake_lightmap(bsp_path, patch_lightmap=False):
+    def save_images(images_list, img_format="JPEG", suffix=".jpg"):
+        for img in images_list:
+            img.file_format = img_format
+            img_path = Path(img.filepath)
+            print(f"Saving image to {str(img_path.with_suffix(suffix))} ... ")
+            img.save(filepath=str(img_path.with_suffix(suffix)), quality=90)
 
     # Select worldspawn
     bpy.context.view_layer.objects.active = bpy.data.objects['worldspawn']
@@ -121,7 +117,18 @@ def bake_lightmap():
     bpy.ops.object.bake(type='DIFFUSE')
     print('Lightmap baking done.')
 
-    save_lightmap_images("OPEN_EXR", ".exr")
+    # Pack and Save Baked Images
+    print('Packing lightmap images')
+    bpy.ops.q3.pack_lightmap_images()
+
+    # Look for external lightmaps
+    lightmaps = [img for img in bpy.data.images if 'lm_' in img.filepath]
+    if len(lightmaps) == 0:
+        # No external lightmap found, use internal
+        lightmaps = [img for img in bpy.data.images if '$lightmap_bake' in img.name]
+        lightmaps[0].filepath = bpy.app.tempdir + lightmaps[0].name
+
+    save_images(lightmaps, "OPEN_EXR", ".exr")
 
     # Prepare Lightmap compositing and export
     bpy.context.scene.node_tree.nodes.clear()
@@ -151,29 +158,46 @@ def bake_lightmap():
         bpy.context.scene.node_tree.links.new(denoise_node.outputs["Image"], outputfile_node.inputs[index])
 
     # Workaround to get the file output node to save lightmaps: render 1 dummy frame
+    print('Denoising Lightmap...')
     dummy_render()
 
     # Rename saved lightmap files to remove frame number appended by the file output node
     lm_dir_files = [f for f in Path(lightmaps[0].filepath).parent.iterdir() if ".jpg" in str(f)]
 
+    # Save external lightmap files
     for lm in lightmaps:
         lm_basename = Path(lm.filepath).stem
         lm_parent = Path(lm.filepath).parent
-        # ignore intermediary images (e.g .exr)
+        # Ignore intermediary images (e.g .exr)
         for f in lm_dir_files:
             if lm_basename == f.stem:
                 lm_dir_files.remove(f)
-        # find denoised lightmap file saved with frame number
+        # Find denoised lightmap file saved with frame number
         lm_filepath = [f for f in lm_dir_files if lm_basename in str(f)][0]
 
-        # create new lightmap file name
+        # Create new lightmap file name
         new_lm_path = lm_parent.joinpath(lm_basename + '.jpg')
 
-        # rename lightmap file
+        # Rename lightmap file
         lm_filepath.replace(new_lm_path)
-        # delete the original lightmap
+        # Delete the original lightmap
         if not ".jpg" in lm.filepath:
             Path(lm.filepath).unlink(missing_ok=True)
+
+    # Patch .bsp file, lightmap only
+    if patch_lightmap:
+        # Handle internal lightmap
+        if bpy.data.images.get("$lightmap_bake"):
+            # Delete the original $lightmap_bake image, and reimport the denoised version
+            bpy.data.images.load(bpy.data.images["$lightmap_bake"].filepath + ".jpg")
+            bpy.data.images.remove(bpy.data.images["$lightmap_bake"])
+            bpy.data.images['$lightmap_bake.jpg'].name = '$lightmap_bake'
+
+        print('Patching BSP Lightmap...')
+        bpy.ops.q3.patch_bsp_data(filepath=str(bsp_path), filter_glob="*.bsp", create_backup=False, patch_lm_tcs=True,
+                                  patch_lightgrid=False, patch_lightmaps=True)
+        print('BSP Lightmap patching done')
+        return
 
 
 def bake_lightgrid(bsp_path):
@@ -283,6 +307,10 @@ def main():
         help="Enable Lightmap Baking",
     )
     parser.add_argument(
+        "--patch-lm", dest="patch_lightmap", action="store_true",
+        help="Enable .bsp Lightmap patching",
+    )
+    parser.add_argument(
         "--lightgrid", dest="bake_lightgrid", action="store_true",
         help="Enable Lightgrid Baking",
     )
@@ -324,7 +352,7 @@ def main():
                 bpy.data.node_groups["EmissionScaleNode"].nodes['Extra emission scale'].outputs[0].default_value = args.extra_emission_scale
 
     if args.bake_lightmap:
-        bake_lightmap()
+        bake_lightmap(bsp_path, args.patch_lightmap)
     if args.bake_lightgrid:
         bake_lightgrid(bsp_path)
 
