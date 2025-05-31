@@ -37,7 +37,7 @@ def cleanup_blend_file(gamepack_name=""):
     # Clear previously imported sunext lights and game entities before reimport
     [bpy.data.objects.remove(obj) for obj in bpy.data.objects if "sunext" in obj.name]
 
-    if gamepack_name != "":
+    if gamepack_name == "":
         gamepack_name = bpy.context.preferences.addons['import_bsp'].preferences.gamepack
 
     gamepack_ents = import_bsp.idtech3lib.GamePacks.get_gamepack(
